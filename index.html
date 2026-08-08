@@ -2,8 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>استوديو الفيديو المحلي المتكامل</title>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <title>صانع قصص العائلة بالذكاء الاصطناعي</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, sans-serif;
@@ -47,7 +46,7 @@
         }
         textarea {
             resize: vertical;
-            height: 90px;
+            height: 80px;
         }
         button {
             background: #e74c3c;
@@ -64,12 +63,14 @@
         button:hover {
             background: #c0392b;
         }
-        #status {
+        canvas {
+            border: 2px solid #444;
+            background: #000;
+            max-width: 100%;
+            border-radius: 6px;
             margin-top: 15px;
-            color: #f1c40f;
-            font-weight: bold;
         }
-        a.download-btn {
+        #downloadLink {
             display: none;
             margin-top: 15px;
             background: #27ae60;
@@ -85,94 +86,131 @@
 <body>
 
     <div class="container">
-        <h2>استوديو الفيديو والصوت الذكي</h2>
+        <h2>صانع قصص وأصوات العائلة</h2>
         
         <div class="section">
-            <label>1. صور الفيديو (اختياري - يمكنك تركها فارغة):</label>
+            <label>1. صور المشاهد (اختياري):</label>
             <input type="file" id="uploadImages" multiple accept="image/*">
         </div>
 
         <div class="section">
-            <label>2. اختر نوع الصوت الشخصي:</label>
-            <select id="voiceType">
-                <option value="male">صوت رجالي (عميق)</option>
-                <option value="female">صوت أنثوي</option>
-                <option value="child">صوت طفولي</option>
+            <label>2. اختر شخصية المتحدث (العائلة):</label>
+            <select id="familyRole">
+                <option value="father">الأب (صوت عميق وخشين)</option>
+                <option value="mother">الأم (صوت هادئ ودافئ)</option>
+                <option value="child">الطفل/الابن (صوت حاد ورفيع)</option>
             </select>
         </div>
 
         <div class="section">
-            <label>3. اكتب القصة أو السيناريو:</label>
-            <textarea id="storyText" placeholder="اكتب القصة هنا (عن حيوان، مغامرة، إلخ)..."></textarea>
+            <label>3. اكتب حوار الشخصية:</label>
+            <textarea id="storyText" placeholder="اكتب ما تنطقه هذه الشخصية..."></textarea>
         </div>
 
-        <button onclick="generateProject()">إنتاج الفيديو الحقيقي</button>
+        <button onclick="startFamilyRecording()">تسجيل وإنشاء فيديو العائلة</button>
         
-        <div id="status">جاهز للبدء...</div>
-        <a id="downloadLink" class="download-btn" download="video-output.mp4">تحميل الفيديو النهائي (MP4)</a>
+        <a id="downloadLink" download="family-video.webm">تحميل الفيديو الناتج</a>
+        <br>
+        <canvas id="videoCanvas" width="640" height="360"></canvas>
     </div>
 
     <script>
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
 
-        async function generateProject() {
-            const statusDiv = document.getElementById('status');
-            const textVal = document.getElementById('storyText').value;
-            const voiceType = document.getElementById('voiceType').value;
+        function startFamilyRecording() {
             const imageFiles = document.getElementById('uploadImages').files;
+            const textVal = document.getElementById('storyText').value;
+            const familyRole = document.getElementById('familyRole').value;
             const downloadLink = document.getElementById('downloadLink');
 
             if (!textVal.trim()) {
-                alert('الرجاء كتابة القصة أو السيناريو أولاً!');
+                alert('الرجاء كتابة الحوار أولاً!');
                 return;
             }
 
-            statusDiv.innerText = 'جاري تهيئة محرك المعالجة...';
-
-            if (!ffmpeg.isLoaded()) {
-                try {
-                    await ffmpeg.load();
-                } catch (e) {
-                    console.log(e);
-                }
+            const stream = canvas.captureStream(30);
+            let recorder;
+            try {
+                recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            } catch (e) {
+                alert('متصفحك لا يدعم التسجيل المباشر.');
+                return;
             }
 
-            statusDiv.innerText = 'جاري تشغيل الصوت البشري وتجهيز اللقطات...';
+            let chunks = [];
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const videoUrl = URL.createObjectURL(blob);
+                downloadLink.href = videoUrl;
+                downloadLink.style.display = 'block';
+                downloadLink.innerText = 'اضغط هنا لتحميل فيديو العائلة!';
+                alert('تم تسجيل الفيديو بنجاح!');
+            };
 
-            // إعداد الصوت البشري حسب الاختيار
+            recorder.start();
+
+            // ضبط نبرة الصوت خصيصاً لكل فرد من العائلة
             const speech = new SpeechSynthesisUtterance(textVal);
             speech.lang = 'ar-SA';
             
-            if (voiceType === 'child') {
-                speech.pitch = 1.6;
-                speech.rate = 1.2;
-            } else if (voiceType === 'female') {
-                speech.pitch = 1.3;
+            if (familyRole === 'father') {
+                speech.pitch = 0.6; // صوت أب عميق جداً
+                speech.rate = 0.9;  // هادئ ومتأني
+            } else if (familyRole === 'mother') {
+                speech.pitch = 1.2; // صوت أم دافئ
                 speech.rate = 1.0;
-            } else {
-                speech.pitch = 0.7; // رجالي غليظ
-                speech.rate = 0.95;
+            } else if (familyRole === 'child') {
+                speech.pitch = 1.7; // صوت طفل رفيع وحيوي
+                speech.rate = 1.25; // سريع بعض الشيء
             }
 
-            // تشغيل النطق البشري فوراً
             window.speechSynthesis.speak(speech);
 
-            // معالجة الصور لو وجدت عبر FFmpeg
-            if (imageFiles.length > 0) {
-                for (let i = 0; i < imageFiles.length; i++) {
-                    ffmpeg.FS('writeFile', `img_${i}.jpg`, await fetchFile(imageFiles[i]));
-                }
+            let imagesArray = [];
+            for (let i = 0; i < imageFiles.length; i++) {
+                imagesArray.push(imageFiles[i]);
             }
 
-            statusDiv.innerText = 'جاري إنتاج الفيديو بنجاح...';
+            let index = 0;
+            function drawFrame() {
+                if (imagesArray.length === 0) {
+                    ctx.fillStyle = '#111';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#3498db';
+                    ctx.font = '22px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('حوار عائلي: ' + familyRole, canvas.width / 2, 180);
+                    
+                    setTimeout(() => {
+                        recorder.stop();
+                    }, 4000);
+                    return;
+                }
 
-            setTimeout(() => {
-                statusDiv.innerText = 'تم الانتهاء بنجاح!';
-                downloadLink.style.display = 'block';
-                // محاكاة رابط جاهز للتحميل المحلي
-                downloadLink.href = "#";
-            }, 3000);
+                if (index >= imagesArray.length) {
+                    setTimeout(() => {
+                        recorder.stop();
+                    }, 2000);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        index++;
+                        setTimeout(drawFrame, 2000);
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(imagesArray[index]);
+            }
+
+            drawFrame();
         }
     </script>
 </body>
