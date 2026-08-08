@@ -2,200 +2,60 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>صانع وتحميل الفيديوهات محلياً</title>
+    <title>استوديو الأصوات الذكي</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-            text-align: center;
-        }
-
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .section {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #e1e8ed;
-            border-radius: 8px;
-            text-align: right;
-        }
-
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
-            color: #34495e;
-        }
-
-        input[type="file"], textarea {
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        textarea {
-            resize: vertical;
-            height: 80px;
-        }
-
-        canvas {
-            border: 2px solid #333;
-            background: #000;
-            max-width: 100%;
-            border-radius: 6px;
-            margin-top: 15px;
-        }
-
-        button {
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #219653;
-        }
-
-        #downloadLink {
-            display: none;
-            margin-top: 15px;
-            background-color: #2980b9;
-            color: white;
-            padding: 12px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
+        body { font-family: 'Arial', sans-serif; background: #2c3e50; color: white; padding: 20px; text-align: center; }
+        .container { max-width: 600px; margin: auto; background: #34495e; padding: 25px; border-radius: 20px; }
+        textarea { width: 100%; height: 120px; border-radius: 10px; padding: 10px; margin-top: 10px; }
+        button { background: #27ae60; color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>صانع ومسجل الفيديوهات المحلي</h2>
-        
-        <div class="section">
-            <label>1. اختر صور الفيديو:</label>
-            <input type="file" id="uploadImages" multiple accept="image/*">
-        </div>
-
-        <div class="section">
-            <label>2. (اختياري) صورتك الشخصية:</label>
-            <input type="file" id="uploadPersonal" accept="image/*">
-        </div>
-
-        <div class="section">
-            <label>3. النص المراد نطقه صوتياً مع الفيديو:</label>
-            <textarea id="voiceText" placeholder="اكتب النص هنا..."></textarea>
-        </div>
-
-        <button onclick="startVideoRecording()">تسجيل وإنشاء الفيديو</button>
-        <br>
-        <a id="downloadLink" download="my-video.webm">تحميل الفيديو الناتج</a>
-
-        <canvas id="videoCanvas" width="640" height="360"></canvas>
+        <h2>نظام اختيار الأصوات الذكي</h2>
+        <textarea id="storyInput" placeholder="اكتب القصة هنا... (مثلاً: كان هناك طفل صغير يركض، أو امرأة حكيمة تتحدث)"></textarea>
+        <button onclick="playSmartVoice()">إنتاج الصوت (رجالي/أنثوي/طفولي)</button>
     </div>
 
     <script>
-        const canvas = document.getElementById('videoCanvas');
-        const ctx = canvas.getContext('2d');
+        function playSmartVoice() {
+            const text = document.getElementById('storyInput').value;
+            const voices = window.speechSynthesis.getVoices();
+            
+            // محرك ذكي لاختيار الصوت
+            let selectedVoice;
+            let pitch = 1.0; // الطبقة الافتراضية
+            let rate = 1.0;  // السرعة
 
-        function startVideoRecording() {
-            const imageFiles = document.getElementById('uploadImages').files;
-            const personalFile = document.getElementById('uploadPersonal').files[0];
-            const textToSpeech = document.getElementById('voiceText').value;
-
-            if (imageFiles.length === 0) {
-                alert('الرجاء اختيار صور الفيديو أولاً!');
-                return;
+            if (text.includes('طفل') || text.includes('ولد') || text.includes('بنت')) {
+                // صوت طفولي: سرعة أعلى وطبقة صوت حادة
+                pitch = 1.5; 
+                rate = 1.2;
+            } else if (text.includes('امرأة') || text.includes('فتاة') || text.includes('أنثى')) {
+                // صوت أنثوي: طبقة أعلى قليلاً
+                pitch = 1.2;
+            } else {
+                // صوت رجالي افتراضي
+                pitch = 0.8;
             }
 
-            // تجميع الصور
-            let allImages = [];
-            if (personalFile) allImages.push(personalFile);
-            for (let i = 0; i < imageFiles.length; i++) {
-                allImages.push(imageFiles[i]);
-            }
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = 'ar-SA';
+            speech.pitch = pitch;
+            speech.rate = rate;
 
-            // تجهيز مسجل الفيديو من الـ Canvas
-            const stream = canvas.captureStream(30); // 30 إطار في الثانية
-            let recorder;
-            try {
-                recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-            } catch (e) {
-                alert('متصفحك لا يدعم تسجيل الفيديو بهذا الشكل.');
-                return;
-            }
-
-            let chunks = [];
-            recorder.ondataavailable = function(e) {
-                chunks.push(e.data);
-            };
-
-            recorder.onstop = function() {
-                const blob = new Blob(chunks, { type: 'video/webm' });
-                const videoUrl = URL.createObjectURL(blob);
-                const downloadLink = document.getElementById('downloadLink');
-                downloadLink.href = videoUrl;
-                downloadLink.style.display = 'block';
-                downloadLink.innerText = 'اضغط هنا لتحميل الفيديو جاهزاً!';
-                alert('تم الانتهاء من تصوير وتجهيز الفيديو بنجاح!');
-            };
-
-            // بدء التسجيل الصوتي والمرئي
-            recorder.start();
-
-            if (textToSpeech.trim() !== "") {
-                const speech = new SpeechSynthesisUtterance(textToSpeech);
-                speech.lang = 'ar-SA';
-                window.speechSynthesis.speak(speech);
-            }
-
-            // عرض الصور تباعاً على الكانفاس
-            let imgIndex = 0;
-            function drawNext() {
-                if (imgIndex >= allImages.length) {
-                    setTimeout(() => {
-                        recorder.stop(); // إيقاف التسجيل بعد انتهاء الصور
-                    }, 2000);
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        imgIndex++;
-                        setTimeout(drawNext, 2000); // عرض كل صورة لمدة ثانية ونصف أو ثانيتين
-                    }
-                    img.src = e.target.result;
-                }
-                reader.readAsDataURL(allImages[imgIndex]);
-            }
-
-            drawNext();
+            // اختيار الصوت من قائمة أصوات المتصفح المتاحة
+            speech.voice = voices.find(v => v.lang === 'ar-SA') || voices[0];
+            
+            window.speechSynthesis.speak(speech);
         }
+
+        // تحميل الأصوات عند فتح الصفحة
+        window.speechSynthesis.onvoiceschanged = () => {
+            console.log("تم تحميل الأصوات بنجاح");
+        };
     </script>
 </body>
 </html>
+          
